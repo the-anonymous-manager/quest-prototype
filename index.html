@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Read-to-Unlock Quest</title>
+<style>
+:root{
+  --paper:#EAE7E1; --surface:#FBFAF7; --surface2:#F2EFEA; --raised:#FFFFFF;
+  --ink:#1E1B16; --ink2:#5C554A; --line:#D2CCC2;
+  --accent:#3B3A8C; --accent-soft:#E2E1F2;
+  --ok:#2E6B52; --ok-soft:#DCEAE3;
+  --warn:#9A6B1F; --warn-soft:#F5E9D4;
+  --bad:#9E3A2C; --bad-soft:#F5E0DC;
+  --lock:#9A9287;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --body:"Public Sans","Segoe UI",system-ui,-apple-system,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#15130F; --surface:#1E1B16; --surface2:#26221C; --raised:#2C2720;
+    --ink:#EDE9E2; --ink2:#A79E91; --line:#3A342B;
+    --accent:#9D9BEF; --accent-soft:#232252;
+    --ok:#6FC79C; --ok-soft:#14301F;
+    --warn:#E0AD5E; --warn-soft:#332610;
+    --bad:#E68C7B; --bad-soft:#341A15;
+    --lock:#6B6459;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15130F; --surface:#1E1B16; --surface2:#26221C; --raised:#2C2720;
+  --ink:#EDE9E2; --ink2:#A79E91; --line:#3A342B;
+  --accent:#9D9BEF; --accent-soft:#232252;
+  --ok:#6FC79C; --ok-soft:#14301F;
+  --warn:#E0AD5E; --warn-soft:#332610;
+  --bad:#E68C7B; --bad-soft:#341A15;
+  --lock:#6B6459;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1000px;margin:0 auto;padding-inline:18px}
+header.top{padding-block:30px 10px}
+.flag{display:inline-block;font-family:var(--mono);font-size:.72rem;background:var(--accent-soft);color:var(--accent);padding:4px 9px;border-radius:3px;margin-bottom:14px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(2rem,6vw,3rem);line-height:1.03;letter-spacing:-.025em;margin:0 0 12px;text-wrap:balance}
+.lede{color:var(--ink2);max-width:62ch;margin:0}
+nav.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--paper);border-bottom:1px solid var(--line)}
+.tabrow{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding-block:8px}
+.tabrow::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;border:0;background:transparent;padding:7px 12px;border-radius:5px;color:var(--ink2);font-size:.92rem;font-weight:500;cursor:pointer;white-space:nowrap}
+.tab[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+main{padding-block:24px 64px}
+section.panel{display:none}
+section.panel.on{display:block}
+h2{font-family:var(--display);font-weight:700;font-size:1.6rem;letter-spacing:-.02em;margin:0 0 6px;text-wrap:balance}
+h3{font-family:var(--display);font-weight:700;font-size:1.08rem;margin:24px 0 8px;text-wrap:balance}
+p{margin:0 0 12px;max-width:66ch}
+.sub{color:var(--ink2)}
+.small{font-size:.87rem}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.slab{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:16px}
+.cols{display:grid;gap:16px;grid-template-columns:1fr}
+@media(min-width:860px){.cols{grid-template-columns:1fr 1fr}}
+.thesis{background:var(--ink);color:var(--paper);border-radius:9px;padding:20px}
+.thesis p{color:var(--paper);max-width:56ch;margin:0}
+.thesis .big{font-family:var(--display);font-weight:700;font-size:clamp(1.2rem,3.4vw,1.5rem);line-height:1.25;margin-bottom:10px}
+.thesis .small{opacity:.8}
+.steps{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:700px){.steps{grid-template-columns:repeat(3,1fr)}}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:14px}
+.stepnum{font-family:var(--mono);font-size:.75rem;color:var(--accent);font-weight:600}
+.step b{display:block;font-family:var(--display);font-size:1.02rem;margin:4px 0 6px}
+.step p{font-size:.88rem;color:var(--ink2);margin:0}
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+@media(min-width:680px){.kpis{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--raised);border:1px solid var(--line);border-radius:7px;padding:11px 12px}
+.kpi .v{font-family:var(--mono);font-size:1.5rem;font-weight:600;line-height:1.1}
+.kpi .l{font-size:.76rem;color:var(--ink2);margin-top:3px;line-height:1.3}
+.toggles{display:grid;gap:8px;grid-template-columns:1fr}
+@media(min-width:700px){.toggles{grid-template-columns:1fr 1fr}}
+.toggle{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;background:var(--raised);border:1px solid var(--line);border-radius:7px;padding:10px 12px;cursor:pointer}
+.toggle input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent)}
+.toggle b{font-size:.93rem}
+.toggle span.w{display:block;font-size:.8rem;color:var(--ink2);margin-top:2px}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:8px 13px;border-radius:6px;font-size:.9rem;font-weight:500;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.people{display:grid;gap:6px;grid-template-columns:1fr}
+.prow{display:grid;grid-template-columns:3px 1fr auto;gap:10px;align-items:center;text-align:left;width:100%;background:var(--raised);border:1px solid var(--line);border-radius:7px;padding:8px 10px;cursor:pointer}
+.prow[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.stripe{width:3px;min-height:30px;border-radius:2px}
+.pid{font-weight:600;font-size:.9rem}
+.pnote{font-size:.76rem;color:var(--ink2)}
+.pout{text-align:right}
+.badge{font-family:var(--mono);font-size:.68rem;padding:2px 6px;border-radius:3px;white-space:nowrap;display:inline-block}
+.badge.ok{background:var(--ok-soft);color:var(--ok)}
+.badge.bad{background:var(--bad-soft);color:var(--bad)}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.n{background:var(--accent-soft);color:var(--accent)}
+.badge.q{background:var(--surface2);color:var(--ink2)}
+.task{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--raised);margin-bottom:6px}
+.task.locked{background:var(--surface2);border-style:dashed;color:var(--lock)}
+.task.done{border-color:var(--ok)}
+.task.blocked{border-color:var(--bad)}
+.tick{width:20px;height:20px;border-radius:4px;display:grid;place-items:center;font-size:.7rem;font-weight:700;font-family:var(--mono);background:var(--surface2);color:var(--ink2)}
+.task.done .tick{background:var(--ok-soft);color:var(--ok)}
+.task.blocked .tick{background:var(--bad-soft);color:var(--bad)}
+.tt{font-size:.9rem;font-weight:500}
+.ts{font-size:.76rem;color:var(--ink2)}
+.xp{font-family:var(--mono);font-size:.82rem;font-weight:600;white-space:nowrap}
+.steplabel{font-family:var(--display);font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2);margin:12px 0 6px}
+.note{font-size:.8rem;background:var(--warn-soft);color:var(--warn);padding:7px 10px;border-radius:5px;margin-bottom:8px}
+.checks{list-style:none;padding:0;margin:0}
+.checks li{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.checks li:last-child{border-bottom:0}
+.mark{flex:0 0 auto;width:19px;height:19px;border-radius:3px;display:grid;place-items:center;font-size:.68rem;font-weight:700;font-family:var(--mono);margin-top:2px}
+.mark.ok{background:var(--ok-soft);color:var(--ok)}
+.mark.no{background:var(--bad-soft);color:var(--bad)}
+.mark.warn{background:var(--warn-soft);color:var(--warn)}
+.checks li span.t{flex:1}
+.stat{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.stat:last-child{border-bottom:0}
+.stat b{font-family:var(--mono)}
+.fstep{margin-bottom:10px}
+.fhead{display:flex;justify-content:space-between;gap:10px;font-size:.88rem}
+.fbar{height:10px;background:var(--surface2);border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:3px}
+.fbar i{display:block;height:100%;background:var(--accent)}
+.fbar.g i{background:var(--ok)}
+.fnote{font-size:.75rem;color:var(--ink2);font-family:var(--mono);margin-top:3px}
+.tablewrap{overflow-x:auto;margin:0 0 14px}
+table{border-collapse:collapse;font-size:.85rem;width:100%;min-width:560px}
+th,td{border-bottom:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{font-weight:600;background:var(--surface2)}
+td.num,th.num{font-family:var(--mono);text-align:right}
+.doc{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:20px 20px 10px}
+.doc h2{font-size:1.25rem;margin:0 0 10px}
+.doc h3{font-size:1.02rem;margin:22px 0 8px}
+.doc ul{margin:0 0 12px;padding-left:19px}
+.doc li{margin:4px 0;max-width:64ch}
+.chain{display:grid;gap:10px;grid-template-columns:1fr}
+@media(min-width:760px){.chain{grid-template-columns:repeat(3,1fr)}}
+.link{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:0 7px 7px 0;padding:12px 14px}
+.link b{display:block;font-size:.95rem;margin-bottom:4px}
+.link p{font-size:.85rem;color:var(--ink2);margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=JetBrains+Mono:wght@400;600&family=Public+Sans:wght@400;500;600&display=swap">
+
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="flag">Synthetic data · 13 made-up participants · testnet only, no real rewards</span>
+    <h1>Read-to-Unlock Quest</h1>
+    <p class="lede">A quest where you have to read the project disclosure before you can submit a review, farmers who share answers are caught automatically, and every approved review can be verified by anyone against the exact document version it was written about.</p>
+  </header>
+</div>
+
+<nav class="tabs" aria-label="Sections"><div class="wrap"><div class="tabrow" id="tabrow"></div></div></nav>
+
+<div class="wrap"><main>
+
+<section class="panel" id="p-how" aria-label="How it works">
+  <h2>How it works</h2>
+  <div class="thesis">
+    <p class="big">The platform sells credible review coverage. A farmed review isn't just a wasted reward, it's a defective product.</p>
+    <p class="small">So the quest is built so that reading is the only way through, and so the result can be checked by someone who doesn't trust the platform.</p>
+  </div>
+
+  <h3>Three steps</h3>
+  <div class="steps">
+    <div class="step"><span class="stepnum">Step 1</span><b>Easy tasks</b><p>Follow, join, share. Checked automatically. 5 XP each, capped at 15, because they're easy to fake.</p></div>
+    <div class="step"><span class="stepnum">Step 2</span><b>Read and pass the quiz</b><p>5 questions, need 4 right, one attempt. Passing unlocks step 3.</p></div>
+    <div class="step"><span class="stepnum">Step 3</span><b>One submission</b><p>One question or review per person. A person reads it and scores it 1 to 5. 3 or above is approved.</p></div>
+  </div>
+
+  <h3>The quiz: 3 general questions and 2 anchor questions</h3>
+  <p>Everyone gets one of five versions of the disclosure. The versions are identical except for a few numbers. Three quiz questions are the same for everyone. <b>Two are anchor questions, and their correct answers are the numbers that differ between versions.</b></p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>What happens</th><th>Score</th><th>Result</th></tr></thead>
+    <tbody>
+      <tr><td>Read your own version properly</td><td class="num">4 or 5 of 5</td><td>Pass, step 3 unlocks</td></tr>
+      <tr><td>Used someone else's answers from a different version</td><td class="num">3 of 5</td><td>Fail, and flagged as a shared answer key</td></tr>
+      <tr><td>Honest mistake, answers match no version</td><td class="num">3 of 5</td><td>Fail, retry tomorrow with new questions</td></tr>
+    </tbody>
+  </table></div>
+  <p><b>The system can tell those last two apart by itself.</b> If a wrong anchor answer is the correct answer for a different version, that's a shared key. If it matches no version, it's a mistake. Same score, completely different meaning, no human needed.</p>
+  <p class="small sub">Question and answer order is shuffled per person too. On its own that's only a speed bump, since people can share answer text instead of positions. What it does is force farmers to share the actual answers, which is exactly what the anchor questions catch.</p>
+
+  <h3>Two checks, two different attacks</h3>
+  <div class="cols">
+    <div class="slab"><b>Anchor check, at the quiz</b><p class="small sub" style="margin:6px 0 0">Catches shared quiz answers before anyone writes anything, so it costs no review time. It's the only check that catches a farmer who writes their own text and quotes no numbers.</p></div>
+    <div class="slab"><b>Version check, at the submission</b><p class="small sub" style="margin:6px 0 0">Catches a submission copied from an account on a different version. It's the only check that catches someone who read their own version honestly and then copied somebody's review.</p></div>
+  </div>
+
+  <h3>The main finding</h3>
+  <div class="tablewrap"><table id="finding"></table></div>
+  <p>Turn off either check and the approval rate <b>goes up</b> while a farmer gets paid. The farmers write good reviews, so the reviewer approves them. <b>Approval rate can't tell you whether you're being farmed.</b></p>
+</section>
+
+<section class="panel" id="p-chain" aria-label="Why on-chain">
+  <h2>Why this is on-chain, and what it earns</h2>
+  <p class="sub">Most of this quest would work on any web2 review site. Here is the part that would not.</p>
+
+  <h3>The problem with a web2 review site</h3>
+  <p>A project pays for a review round. The reviews appear. But a reader has to take the platform's word for three things: that the disclosure wasn't quietly edited after people reviewed it, that reviewers saw the version being claimed, and that the timestamps are real. Every one of those is just trust in the platform.</p>
+
+  <h3>What goes on-chain, on testnet</h3>
+  <div class="chain">
+    <div class="link"><b>1. Version commitment</b><p>Before the campaign opens, the platform publishes a hash of each of the five disclosure versions. The hashes reveal nothing, but afterwards anyone can check that the version someone was shown existed before the campaign started and wasn't edited later.</p></div>
+    <div class="link"><b>2. Review attestation</b><p>Optional. A participant signs a hash of their submission plus their version id. Their review becomes independently verifiable: this text, about this version, at this time, before the project replied.</p></div>
+    <div class="link"><b>3. Nothing else</b><p>Review scores stay off-chain, because they're a human judgment and a mistake shouldn't be permanent. Which version someone got stays private until the campaign closes, or it becomes the answer key.</p></div>
+  </div>
+
+  <h3>Why the version commitment matters more than it looks</h3>
+  <p>Without it, "you quoted the wrong version" is the platform's word against the participant's. With it, an appeal can be settled by anyone with the hash. The anti-farming system becomes auditable instead of something users have to trust, which matters when the penalty is losing a reward.</p>
+
+  <h3>What it is not</h3>
+  <p>Not proof of holdings, not verified reserves, not a signal that anything is worth buying. An attestation says a person read a document and wrote about it. It does not say they own anything, and it says nothing about whether the project is a good investment. No purchase, no mainnet transaction, no real reward anywhere in this.</p>
+
+  <h3>The wallet stays optional, and the numbers show it</h3>
+  <p>An attestation earns 10 XP and a "verified against version X" badge. It is never required. A participant with no wallet can reach the top of the XP table and their review is approved and counted exactly the same, it just doesn't carry the badge. In the simulation, <span id="nowalletline" class="mono"></span>.</p>
+
+  <h3>The business case</h3>
+  <p>The platform's product is coverage a project can point to. That's worth more when a third party can verify it, and worth nothing when it's farmed. So the checks aren't housekeeping, they're what protects the thing being sold.</p>
+  <div class="tablewrap"><table id="business"></table></div>
+  <p class="small sub">Assumptions, not measured: a review round is 25 approved reviews, a reviewer costs 12 USD an hour and takes 5 minutes per review. The ratios matter here, not the absolute numbers.</p>
+  <p><b>With the checks on, a credible review costs about 55% less, and one reviewer delivers roughly twice as many.</b> That's the argument for spending engineering time on this, in terms a founder can act on.</p>
+</section>
+
+<section class="panel" id="p-try" aria-label="Try it">
+  <h2>Try it</h2>
+  <p class="sub">Turn checks on and off, then click a participant to see their quest.</p>
+  <div class="slab">
+    <div class="toggles" id="toggles"></div>
+    <div class="btnrow">
+      <button class="btn" id="run">Run checks</button>
+      <button class="btn ghost" id="anchorOff">Turn off anchor check only</button>
+      <button class="btn ghost" id="verOff">Turn off version check only</button>
+      <button class="btn ghost" id="allOff">Turn off all checks</button>
+      <button class="btn ghost" id="reset">Reset</button>
+    </div>
+  </div>
+  <div class="kpis" id="kpis" style="margin-top:16px"></div>
+  <div class="cols" style="margin-top:16px">
+    <div>
+      <h3 style="margin-top:0">Participants</h3>
+      <div class="people" id="people"></div>
+    </div>
+    <div>
+      <div class="slab">
+        <h3 style="margin-top:0" id="boardtitle">Quest board</h3>
+        <div id="board"></div>
+      </div>
+      <div class="slab" style="margin-top:16px">
+        <h3 style="margin-top:0">Checks</h3>
+        <ul class="checks" id="checkout"><li><span class="mark warn">i</span><span class="t">Press Run checks.</span></li></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" id="p-results" aria-label="Results">
+  <h2>Results</h2>
+  <p class="sub">These update with the checks on the Try it tab. 13 people is far too few to prove anything. The point is to show the logic works.</p>
+  <div class="cols">
+    <div class="slab"><h3 style="margin-top:0">Funnel</h3><div id="funnel"></div></div>
+    <div>
+      <div class="slab"><h3 style="margin-top:0">Wallet and attestation, counted separately</h3><div id="wallet"></div></div>
+      <div class="slab" style="margin-top:16px"><h3 style="margin-top:0">Reviewer capacity</h3><div id="capacity"></div></div>
+    </div>
+  </div>
+  <h3>Metric formulas</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>Metric</th><th>Formula</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td>Main metric</td><td>approved reviews ÷ eligible participants</td><td>40% (baseline assumed 25%)</td></tr>
+      <tr><td>Business metric</td><td>reviewer cost ÷ credible approved reviews</td><td>under 1.50 USD</td></tr>
+      <tr><td>Approval rate</td><td>approved ÷ reviews a person read</td><td>70% or more</td></tr>
+      <tr><td>Shared key rate</td><td>quizzes whose anchor answers match another version ÷ quizzes taken</td><td>under 10%</td></tr>
+      <tr><td>Copied review rate</td><td>submissions quoting another version's number ÷ submissions quoting any number</td><td>under 10%</td></tr>
+      <tr><td>Attested share</td><td>approved reviews with a testnet attestation ÷ approved reviews</td><td>tracked, never a gate</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Stop rules</h3>
+  <ul>
+    <li>Nothing triggers below 50 sign-ups in a week.</li>
+    <li>Shared key rate or copied review rate above 10% in a week: pause and publish a new set of five versions, because an answer key is going around.</li>
+    <li>Review queue bigger than two weeks of reviewer capacity: stop sending invites.</li>
+    <li>Approval rate below 70% for two weeks: make the quiz harder.</li>
+    <li>Cost per credible review above 2 USD: stop and find out which check is leaking.</li>
+  </ul>
+  <h3>Synthetic dataset</h3>
+  <p class="small sub">All 13 people are made up. Each one tests a specific case.</p>
+  <div class="tablewrap"><table id="dataset"></table></div>
+</section>
+
+<section class="panel" id="p-prd" aria-label="PRD and backlog">
+  <div class="doc">
+    <h2>PRD</h2>
+    <h3>Problem</h3>
+    <p>The platform sells credible review coverage. Quest campaigns pay for cheap tasks that are easy to fake, the one task that matters needs a person to read it, and a farmer using AI writes reviews good enough to be approved. Farmed reviews don't just waste the reward budget, they are a defective product.</p>
+    <h3>Goal</h3>
+    <p>Deliver review rounds a project can point to and a reader can verify, at a cost per credible review one reviewer can sustain.</p>
+    <h3>Users</h3>
+    <ul><li>Participants, with or without a wallet</li><li>The reviewer, who has about 3 to 4 hours a week</li><li>Projects paying for a review round</li><li>The growth lead, who decides how many people to invite</li></ul>
+    <h3>Event schema</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Event</th><th>When</th><th>Key fields</th></tr></thead>
+      <tbody>
+        <tr><td>versions_committed</td><td>before the campaign opens</td><td>campaign_id, version_hashes[5], tx_hash, network</td></tr>
+        <tr><td>signed_up</td><td>registration</td><td>user_id, device_hash, version_assigned, source</td></tr>
+        <tr><td>duplicate_checked</td><td>right after sign-up</td><td>user_id, duplicate_of</td></tr>
+        <tr><td>easy_task_done</td><td>follow, join or share verified</td><td>user_id, task, xp</td></tr>
+        <tr><td>disclosure_opened</td><td>disclosure opened</td><td>user_id, version, seconds_open</td></tr>
+        <tr><td>quiz_submitted</td><td>quiz sent</td><td>user_id, general_correct, anchor_result, matched_version, attempt, seconds</td></tr>
+        <tr><td>shared_key_flagged</td><td>anchor answers match another version</td><td>user_id, own_version, matched_version</td></tr>
+        <tr><td>submission_sent</td><td>review sent</td><td>user_id, seconds, numbers_quoted</td></tr>
+        <tr><td>version_checked</td><td>after submission</td><td>user_id, version_served, version_quoted, mismatch</td></tr>
+        <tr><td>review_scored</td><td>reviewer decides</td><td>user_id, score, reviewer_id, minutes</td></tr>
+        <tr><td>wallet_declined</td><td>user skips wallet</td><td>user_id</td></tr>
+        <tr><td>attestation_result</td><td>testnet signature</td><td>user_id, success, tx_hash, error</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small sub">Funnel, formulas, targets and stop rules are on the Results tab.</p>
+    <h3>Backlog, in priority order</h3>
+    <p><b>1. Duplicate check, version assignment and version commitment.</b> Nothing else is trustworthy without it.</p>
+    <ul>
+      <li>Same device, email or KYC hash as an existing account: earns 0 XP, can't submit.</li>
+      <li>Each person gets a random version at sign-up, stored on the server, never exposed in the page, URL or on-chain.</li>
+      <li>The five version hashes are published on testnet before the campaign opens, so the assignment can be audited later.</li>
+    </ul>
+    <p><b>2. Quiz with anchor questions and one attempt.</b></p>
+    <ul>
+      <li>3 general plus 2 anchor questions, marked against the person's own version.</li>
+      <li>A wrong anchor answer that matches another version's correct answer is logged as a shared key, not a mistake.</li>
+      <li>One attempt. A fail starts a 24 hour wait and the retry uses different questions.</li>
+      <li>Question and option order shuffled per person.</li>
+      <li>Submission blocked on the server until the quiz is passed, not just hidden in the interface.</li>
+    </ul>
+    <p><b>3. Version check on submissions.</b></p>
+    <ul>
+      <li>Numbers quoted in a submission are matched against the person's version.</li>
+      <li>A number from another version: rejected, with the reason and an appeal route that can be settled against the published hash.</li>
+      <li>A submission quoting no numbers is never penalised.</li>
+      <li>Submitted in under 30 seconds: held for a person to look at, not banned.</li>
+    </ul>
+    <p><b>4. Review queue and the cost dashboard.</b></p>
+    <ul>
+      <li>Oldest first, one at a time, minutes spent recorded.</li>
+      <li>Scoring guide with an example of a 2 and a 4 so reviewers agree.</li>
+      <li>Dashboard shows queue size, approval rate, shared key rate and cost per credible review.</li>
+    </ul>
+    <p><b>5. Optional attestation and badges.</b></p>
+    <ul>
+      <li>No level and no approval needs a wallet. A wallet decliner can top the table.</li>
+      <li>A failed signature only loses its own 10 XP and can be retried.</li>
+      <li>An approved review with an attestation shows a "verified against version X" badge once the campaign closes and versions are revealed.</li>
+    </ul>
+  </div>
+</section>
+
+<section class="panel" id="p-memo" aria-label="Experiment and memo">
+  <div class="doc">
+    <h2>Channel experiment</h2>
+    <p><b>Channel:</b> Telegram announcement, two links split at random. Not run.</p>
+    <ul>
+      <li><b>A, reward-led:</b> "Complete quests and climb the leaderboard."</li>
+      <li><b>B, reading-led:</b> "Read the disclosure, pass the quiz, and the team reads your review."</li>
+    </ul>
+    <p><b>Expected result:</b> B gets fewer sign-ups but more approved reviews per sign-up and a lower cost per credible review.</p>
+    <p><b>Decision rule:</b> pick B if its main metric is at least 5 points higher and its cost per credible review is no worse. Don't decide on approval rate alone.</p>
+    <p><b>Size:</b> 200 eligible people per link, up to 2 weeks. This is an assumption, not a calculation. It's also more than one reviewer can handle, so the test needs a second reviewer or fewer people.</p>
+
+    <h2 style="margin-top:28px">Weekly decision memo, week 1</h2>
+    <h3>Numbers</h3>
+    <ul>
+      <li>13 signed up, 12 unique, 5 reached the reviewer, 4 approved</li>
+      <li>Approval rate 80%, shared key rate 17%, cost per credible review about 1.25 USD</li>
+      <li>2 of 4 approved reviews came from people who never connected a wallet</li>
+      <li>1 of 4 approved reviews carries a testnet attestation</li>
+    </ul>
+    <h3>What happened</h3>
+    <p>Q09 and Q10 both answered the anchor questions with version A's numbers. Q09 was on version B and Q10 on version D, so they were sharing answers. They were stopped at the quiz, before either of them cost the reviewer a minute. Q11 read their own version honestly and then copied someone else's review text, which the version check caught at submission.</p>
+    <p>Q07 also failed with 3 of 5, but their wrong anchor answers matched no version at all. That's an honest mistake, so they keep their XP and can retry tomorrow with different questions. Same score as the farmers, opposite treatment, decided automatically.</p>
+    <p>Turn off either check in the prototype and the approval rate goes <em>up</em> while a farmer gets paid, because farmed reviews read well. That's why approval rate is a health metric and not an integrity metric.</p>
+    <h3>Decisions</h3>
+    <ul>
+      <li>Shared key rate is 17%, above the 10% line. Publish a fresh set of five version hashes before the next invite batch.</li>
+      <li>One reviewer at 40 reviews a week delivers about 32 approved reviews, so roughly 190 sign-ups a week. Cap invites there until a second reviewer is added.</li>
+      <li>Attested share is low at 25%. Worth testing whether showing the badge earlier in the flow lifts it, since attested reviews are the ones a project can actually point to.</li>
+    </ul>
+    <h3>Abuse risks</h3>
+    <ul>
+      <li>Someone running 5 accounts can read all 5 versions. This stops mass farming, not a determined small farmer.</li>
+      <li>Multiple devices and emails can beat the duplicate check.</li>
+      <li>An attestation proves timing and content, not identity. A farmer can attest too.</li>
+      <li>Two reviewers may score the same review differently.</li>
+      <li>A typo in one version would reject honest people and look exactly like farming.</li>
+    </ul>
+    <h3>Next validation step</h3>
+    <p>Take 20 real submissions from a past campaign, with permission, and have two people score them separately. That checks whether the scoring guide works and how long a review really takes. Every capacity and cost number assumes 5 minutes.</p>
+    <h3>Next for engineering</h3>
+    <p>Build backlog items 1 and 2: duplicate check, version assignment, the testnet version commitment and the anchor quiz, all enforced on the server.</p>
+    <h3>Next for ops</h3>
+    <p>Write the 5 versions and have a second person check they only differ in the intended numbers. Write the 2 anchor questions per version. Write the scoring guide. Clear held accounts daily.</p>
+  </div>
+</section>
+
+</main></div>
+
+<script>
+const TABS=[["p-how","How it works"],["p-chain","Why on-chain"],["p-try","Try it"],["p-results","Results"],["p-prd","PRD & backlog"],["p-memo","Experiment & memo"]];
+const U=[
+ {id:"Q01",note:"No wallet, best submission",dev:"d1",wallet:"declined",easy:3,opened:1,gen:3,anchor:"own",att:1,ver:"B",cites:"B",sub:1,rating:5,secs:240,ack:"none"},
+ {id:"Q02",note:"Wallet user, attested review",dev:"d2",wallet:"connected",easy:3,opened:1,gen:2,anchor:"own",att:1,ver:"C",cites:"C",sub:1,rating:4,secs:180,ack:"success"},
+ {id:"Q03",note:"Second account, same device as Q02",dev:"d2",wallet:"connected",easy:3,opened:1,gen:3,anchor:"own",att:1,ver:"C",cites:"C",sub:1,rating:4,secs:160,ack:"success",farmer:1},
+ {id:"Q04",note:"Attestation failed on testnet",dev:"d4",wallet:"connected",easy:2,opened:1,gen:3,anchor:"own",att:1,ver:"A",cites:"A",sub:1,rating:4,secs:210,ack:"failed"},
+ {id:"Q05",note:"Easy tasks only, never opened",dev:"d5",wallet:"declined",easy:3,opened:0,gen:0,anchor:null,att:0,ver:"D",cites:null,sub:1,rating:1,secs:25,ack:"none"},
+ {id:"Q06",note:"Bot, submitted in 18 seconds",dev:"d6",wallet:"connected",easy:3,opened:1,gen:3,anchor:"own",att:1,ver:"D",cites:"D",sub:1,rating:1,secs:18,ack:"none"},
+ {id:"Q07",note:"Honest mistake on anchor questions",dev:"d7",wallet:"declined",easy:2,opened:1,gen:3,anchor:"wrong",att:1,ver:"E",cites:null,sub:1,rating:2,secs:150,ack:"none"},
+ {id:"Q08",note:"Passed, weak generic submission",dev:"d8",wallet:"declined",easy:1,opened:1,gen:2,anchor:"own",att:1,ver:"E",cites:null,sub:1,rating:2,secs:95,ack:"none"},
+ {id:"Q09",note:"Shared quiz answers, own text, no numbers",dev:"d9",wallet:"connected",easy:2,opened:1,gen:3,anchor:"foreign",att:1,ver:"B",cites:null,sub:1,rating:4,secs:145,ack:"success",farmer:1},
+ {id:"Q10",note:"Shared quiz answers and copied text",dev:"d10",wallet:"connected",easy:2,opened:1,gen:3,anchor:"foreign",att:1,ver:"D",cites:"A",sub:1,rating:4,secs:150,ack:"success",farmer:1},
+ {id:"Q11",note:"Read own version, copied someone's review",dev:"d11",wallet:"connected",easy:1,opened:1,gen:2,anchor:"own",att:1,ver:"D",cites:"A",sub:1,rating:4,secs:130,ack:"success",farmer:1},
+ {id:"Q12",note:"Retried the quiz 3 times",dev:"d12",wallet:"connected",easy:3,opened:1,gen:3,anchor:"own",att:3,ver:"C",cites:"C",sub:1,rating:3,secs:145,ack:"success",farmer:1},
+ {id:"Q13",note:"No wallet, good submission, no numbers",dev:"d13",wallet:"declined",easy:1,opened:1,gen:2,anchor:"own",att:1,ver:"C",cites:null,sub:1,rating:4,secs:165,ack:"none"}
+];
+const CHECKS=[
+ {k:"dup",label:"Duplicate check",why:"Same device, email or KYC as another account earns nothing."},
+ {k:"anchor",label:"Anchor questions",why:"2 of the 5 quiz questions have answers that differ by disclosure version. Catches shared answer keys at the quiz, before anyone costs review time."},
+ {k:"once",label:"One quiz attempt",why:"Stops people retrying until they learn the answers. A fail means a 24 hour wait and new questions."},
+ {k:"ver",label:"Version check on submissions",why:"Catches a review copied from an account that had a different version."},
+ {k:"speed",label:"Too-fast check",why:"Under 30 seconds is held for a person to look at. Nobody reads and writes that fast."}
+];
+const ON={dup:true,anchor:true,once:true,ver:true,speed:true};
+const OFF={dup:false,anchor:false,once:false,ver:false,speed:false};
+let R={...ON}, sel="Q01";
+
+function evaluate(r){
+  r=r||R; const seen=new Set();
+  const out=U.map(u=>{
+    const dup=r.dup&&seen.has(u.dev); seen.add(u.dev);
+    const anchorOK=(u.anchor==="own")||(!r.anchor&&u.anchor==="foreign");
+    const score=u.gen+(anchorOK?2:0);
+    const retried=r.once&&u.att>1;
+    const qpass=score>=4&&!retried&&u.anchor!==null;
+    const shared=r.anchor&&u.anchor==="foreign";
+    const subm=!!u.sub&&qpass&&!dup;
+    let screen=null;
+    if(subm){
+      if(r.ver&&u.cites&&u.cites!==u.ver) screen="copied review";
+      else if(r.speed&&u.secs<30) screen="too fast";
+    }
+    const rev=subm&&!screen;
+    const ok=rev&&u.rating>=3;
+    const xpEasy=Math.min(u.easy*5,15), xpRead=u.opened?10:0, xpQuiz=qpass?20:0;
+    const xpSub=ok?(u.rating===5?100:60):0, xpAtt=u.ack==="success"?10:0;
+    const xp=dup?0:xpEasy+xpRead+xpQuiz+xpSub+xpAtt;
+    const level=dup?"None":ok?"Verified":qpass?"Contributor":"Explorer";
+    return {...u,dup,score,qpass,shared,retried,subm,screen,rev,ok,xp,level,xpEasy,xpRead,xpQuiz,xpSub,xpAtt};
+  });
+  const q=out.filter(e=>e.rev), a=q.filter(e=>e.ok), elig=out.filter(e=>!e.dup);
+  const att=a.filter(e=>e.ack==="success");
+  const quizzes=out.filter(e=>e.anchor!==null);
+  const farmersPaid=a.filter(e=>e.farmer).length;
+  return {out,queue:q.length,appr:a.length,elig:elig.length,subs:out.filter(e=>e.subm).length,
+    approval:q.length?100*a.length/q.length:0,
+    farmers:farmersPaid,
+    sharedRate:quizzes.length?100*out.filter(e=>e.shared).length/quizzes.length:0,
+    sharedCount:out.filter(e=>e.shared).length,
+    attShare:a.length?100*att.length/a.length:0, attCount:att.length,
+    noWallet:a.filter(e=>e.wallet==="declined").length};
+}
+
+function business(s,rate=12,mins=5,target=25){
+  if(!s.appr||!s.approval) return null;
+  const reads=target/(s.approval/100), hrs=reads*mins/60, cost=hrs*rate;
+  const farmShare=s.farmers/s.appr, credible=target*(1-farmShare);
+  return {reads:Math.round(reads),hrs:hrs.toFixed(1),cost:Math.round(cost),
+    farmPct:Math.round(farmShare*100),credible:credible.toFixed(1),
+    per:credible?(cost/credible).toFixed(2):null};
+}
+
+function statusOf(e){
+  if(e.dup) return ["duplicate","bad"];
+  if(e.shared) return ["shared answer key","bad"];
+  if(e.retried) return ["retry ignored","warn"];
+  if(!e.qpass) return ["quiz "+e.score+"/5","q"];
+  if(e.screen) return [e.screen,"bad"];
+  if(e.ok) return ["approved "+e.rating+"/5","ok"];
+  if(e.rev) return ["rejected "+e.rating+"/5","warn"];
+  return ["no submission","q"];
+}
+
+function renderFinding(){
+  const a=evaluate(ON), b=evaluate({...ON,anchor:false}), c=evaluate({...ON,ver:false}), d=evaluate(OFF);
+  const rows=[["Reviews a person must read",a.queue,b.queue,c.queue,d.queue],
+    ["Approval rate",Math.round(a.approval)+"%",Math.round(b.approval)+"%",Math.round(c.approval)+"%",Math.round(d.approval)+"%"],
+    ["Approved",a.appr,b.appr,c.appr,d.appr],
+    ["Farmers paid",a.farmers,b.farmers,c.farmers,d.farmers]];
+  document.getElementById("finding").innerHTML=
+    `<thead><tr><th></th><th class="num">All on</th><th class="num">Anchor off</th><th class="num">Version off</th><th class="num">All off</th></tr></thead><tbody>`+
+    rows.map(r=>{const hot=(r[0]==="Approval rate"||r[0]==="Farmers paid");
+      return `<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num"${hot?' style="color:var(--bad);font-weight:600"':""}>${r[2]}</td><td class="num"${hot?' style="color:var(--bad);font-weight:600"':""}>${r[3]}</td><td class="num">${r[4]}</td></tr>`}).join("")+`</tbody>`;
+}
+
+function renderBusiness(){
+  const on=business(evaluate(ON)), off=business(evaluate(OFF));
+  const rows=[["Reviews read to get 25 approved",on.reads,off.reads],
+    ["Reviewer hours",on.hrs,off.hrs],
+    ["Reviewer cost, USD",on.cost,off.cost],
+    ["Share of approvals that are farmed",on.farmPct+"%",off.farmPct+"%"],
+    ["Credible reviews actually delivered",on.credible,off.credible],
+    ["Cost per credible review, USD",on.per,off.per]];
+  document.getElementById("business").innerHTML=
+    `<thead><tr><th>Per review round of 25</th><th class="num">All checks on</th><th class="num">All checks off</th></tr></thead><tbody>`+
+    rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${r[1]}</td><td class="num"${r[0].startsWith("Cost per")||r[0].startsWith("Share")?' style="color:var(--bad);font-weight:600"':""}>${r[2]}</td></tr>`).join("")+`</tbody>`;
+  const s=evaluate(ON);
+  document.getElementById("nowalletline").textContent=`${s.noWallet} of ${s.appr} approved reviews came from people with no wallet, and ${s.attCount} of ${s.appr} carries an attestation`;
+}
+
+function renderToggles(){
+  const box=document.getElementById("toggles");
+  if(!box.dataset.built){
+    box.innerHTML=CHECKS.map(c=>`<label class="toggle"><input type="checkbox" id="t-${c.k}"><span><b>${c.label}</b><span class="w">${c.why}</span></span></label>`).join("");
+    CHECKS.forEach(c=>document.getElementById("t-"+c.k).onchange=e=>{R[c.k]=e.target.checked;render()});
+    box.dataset.built="1";
+  }
+  CHECKS.forEach(c=>document.getElementById("t-"+c.k).checked=R[c.k]);
+}
+
+function renderKpis(s){
+  const b=business(s);
+  const k=[
+    {v:Math.round(s.approval)+"%",l:"approval rate",c:s.approval<70?"var(--bad)":"var(--ok)"},
+    {v:s.farmers,l:"farmers paid",c:s.farmers?"var(--bad)":"var(--ok)"},
+    {v:s.sharedCount,l:"shared answer keys caught at the quiz",c:s.sharedCount?"var(--warn)":"var(--ink)"},
+    {v:b?"$"+b.per:"n/a",l:"cost per credible review",c:b&&+b.per>1.5?"var(--bad)":"var(--ok)"}
+  ];
+  document.getElementById("kpis").innerHTML=k.map(i=>`<div class="kpi"><div class="v" style="color:${i.c||"var(--ink)"}">${i.v}</div><div class="l">${i.l}</div></div>`).join("");
+}
+
+function renderPeople(s){
+  const box=document.getElementById("people");
+  box.innerHTML=s.out.map(e=>{const [t,c]=statusOf(e);
+    const col=c==="ok"?(e.farmer?"var(--bad)":"var(--ok)"):c==="bad"?"var(--bad)":c==="warn"?"var(--warn)":"var(--lock)";
+    return `<button class="prow" aria-pressed="${e.id===sel}" data-id="${e.id}">
+      <span class="stripe" style="background:${col}"></span>
+      <span><span class="pid">${e.id}</span>${e.wallet==="declined"?' <span class="badge n">no wallet</span>':""}<br><span class="pnote">${e.note}</span></span>
+      <span class="pout"><span class="badge ${c}">${t}</span><br><span class="pnote mono">${e.xp} XP</span></span></button>`}).join("");
+  box.querySelectorAll(".prow").forEach(b=>b.onclick=()=>{sel=b.dataset.id;render()});
+}
+
+function task(state,title,subtitle,xp){
+  const tick={done:"✓",blocked:"×",locked:"·","":""}[state];
+  return `<div class="task ${state}"><span class="tick">${tick}</span><span><span class="tt">${title}</span><br><span class="ts">${subtitle}</span></span><span class="xp">${xp}</span></div>`;
+}
+
+function renderBoard(s){
+  const e=s.out.find(x=>x.id===sel);
+  document.getElementById("boardtitle").textContent=`${e.id} · ${e.level} · ${e.xp} XP`;
+  let h="";
+  if(e.dup) h+=`<div class="note">Same device as another account. This account earns nothing.</div>`;
+  h+=`<div class="steplabel">Step 1 · easy tasks</div>`;
+  h+=task(e.easy?"done":"","Follow, join, share",`${e.easy} done, capped at 15 XP`,e.xpEasy+" XP");
+  h+=`<div class="steplabel">Step 2 · read and quiz</div>`;
+  h+=task(e.opened?"done":"","Read the disclosure",e.opened?`was given version ${e.ver}`:"never opened",e.xpRead+" XP");
+  let qs,qsub;
+  if(e.anchor===null){qs="";qsub="quiz not attempted"}
+  else if(e.retried){qs="blocked";qsub=`passed on attempt ${e.att}, only the first attempt counts`}
+  else if(e.shared){qs="blocked";qsub=`${e.score} of 5 · anchor answers are version A's, but this account has version ${e.ver}. Shared answer key.`}
+  else if(e.anchor==="wrong"){qs="blocked";qsub=`${e.score} of 5 · anchor answers match no version, so an honest mistake. Retry tomorrow.`}
+  else if(e.qpass){qs="done";qsub=`${e.score} of 5 · ${e.gen} of 3 general, both anchors correct for version ${e.ver}`}
+  else {qs="blocked";qsub=`${e.score} of 5, needs 4`}
+  h+=task(qs,"Pass the quiz: 3 general, 2 anchor",qsub,e.xpQuiz+" XP");
+  h+=`<div class="steplabel">Step 3 · one submission</div>`;
+  let ss="",ssub="";
+  if(!e.qpass){ss="locked";ssub="locked until the quiz is passed"}
+  else if(e.screen==="copied review"){ss="blocked";ssub=`quotes a number from version ${e.cites}, but this account has version ${e.ver}`}
+  else if(e.screen==="too fast"){ss="blocked";ssub="sent in under 30 seconds, held for a person to check"}
+  else if(e.ok){ss="done";ssub=`approved, scored ${e.rating} of 5`+(e.cites?"":", quoted no numbers, which is fine")}
+  else if(e.rev){ss="blocked";ssub=`reviewed, scored ${e.rating} of 5, below 3`}
+  else {ssub="not submitted"}
+  h+=task(ss,"Submit a question or review",ssub,e.xpSub+" XP");
+  h+=`<div class="steplabel">Optional · testnet attestation</div>`;
+  h+=task(e.ack==="success"?"done":e.ack==="failed"?"blocked":"","Sign your review and version id",
+    e.ack==="failed"?"signature failed, keeps all other XP":e.ack==="success"?"signed, review is independently verifiable"
+      :e.wallet==="declined"?"wallet declined, nothing lost, review counts the same":"not signed",e.xpAtt+" XP");
+  document.getElementById("board").innerHTML=h;
+}
+
+function renderResults(s){
+  const n=U.length, opened=s.out.filter(e=>!e.dup&&e.opened).length, passed=s.out.filter(e=>!e.dup&&e.qpass).length;
+  const f=[["Signed up",n,"everyone"],["Unique",s.elig,"after duplicate check"],["Read the disclosure",opened,"unique people who opened it"],
+    ["Passed the quiz",passed,"4 of 5 including both anchors"],["Submitted",s.subs,"people allowed to submit who did"],
+    ["Reached the reviewer",s.queue,"passed the automatic checks"],["Approved",s.appr,"scored 3 or more",1]];
+  document.getElementById("funnel").innerHTML=f.map(t=>`<div class="fstep"><div class="fhead"><span>${t[0]}</span><span class="mono">${t[1]}</span></div>
+    <div class="fbar ${t[3]?"g":""}"><i style="width:${t[1]/n*100}%"></i></div><div class="fnote">${t[2]}</div></div>`).join("")+
+    `<p class="small sub" style="margin:10px 0 0">Main metric: ${s.appr} approved ÷ ${s.elig} eligible = <b>${Math.round(100*s.appr/s.elig)}%</b>. Shared key rate: ${Math.round(s.sharedRate)}%.</p>`;
+  const conn=U.filter(u=>u.wallet==="connected").length;
+  document.getElementById("wallet").innerHTML=`
+    <div class="stat"><span>Connected a wallet</span><b>${conn} of ${n}</b></div>
+    <div class="stat"><span>Attestation signed</span><b>${U.filter(u=>u.ack==="success").length}</b></div>
+    <div class="stat"><span>Attestation failed</span><b>${U.filter(u=>u.ack==="failed").length}</b></div>
+    <div class="stat"><span>Approved with no wallet</span><b>${s.noWallet} of ${s.appr}</b></div>
+    <div class="stat"><span>Approved reviews carrying an attestation</span><b>${s.attCount} of ${s.appr} (${Math.round(s.attShare)}%)</b></div>
+    <p class="small sub" style="margin:10px 0 0">None of this is added to the main metric. A wallet is never required to be approved.</p>`;
+  const perSignup=s.queue/n, q500=500*perSignup, b=business(s);
+  document.getElementById("capacity").innerHTML=`
+    <div class="stat"><span>One reviewer, 5 min each</span><b>40 / week</b></div>
+    <div class="stat"><span>At 500 sign-ups, reviews to read</span><b>${Math.round(q500)}</b></div>
+    <div class="stat"><span>Weeks to clear</span><b style="color:${q500/40>2?"var(--bad)":"var(--ok)"}">${(q500/40).toFixed(1)}</b></div>
+    <div class="stat"><span>Sign-ups one reviewer handles in 2 weeks</span><b>${perSignup?Math.round(80/perSignup):"n/a"}</b></div>
+    <div class="stat"><span>Cost per credible review</span><b>${b?"$"+b.per:"n/a"}</b></div>`;
+}
+
+function renderDataset(){
+  const s=evaluate(ON);
+  document.getElementById("dataset").innerHTML=`<thead><tr><th>ID</th><th>What it tests</th><th>Wallet</th><th>Version</th><th>Anchor answers</th><th>Quotes version</th><th class="num">Quiz</th><th class="num">Attempts</th><th class="num">Secs</th><th class="num">Score</th><th>Result</th><th class="num">XP</th></tr></thead><tbody>`+
+    s.out.map(e=>`<tr><td>${e.id}</td><td>${e.note}</td><td>${e.wallet}</td><td>${e.ver}</td><td>${e.anchor===null?"-":e.anchor==="own"?"own version":e.anchor==="foreign"?"version A":"no match"}</td><td>${e.cites||"none"}</td><td class="num">${e.anchor===null?"-":e.score+"/5"}</td><td class="num">${e.att}</td><td class="num">${e.secs}</td><td class="num">${e.rating}</td><td>${statusOf(e)[0]}</td><td class="num">${e.xp}</td></tr>`).join("")+`</tbody>`;
+}
+
+function runChecks(){
+  const s=evaluate(), g=id=>s.out.find(e=>e.id===id);
+  const t=[
+    ["Someone with no wallet can top the XP table (Q01)",g("Q01").level==="Verified"&&g("Q01").xp===Math.max(...s.out.map(e=>e.xp))],
+    ["Duplicate account earns nothing (Q03)",g("Q03").xp===0],
+    ["Failed attestation keeps every other XP (Q04)",g("Q04").ok],
+    ["Shared answer key caught at the quiz (Q09, Q10)",g("Q09").shared&&g("Q10").shared&&!g("Q09").ok&&!g("Q10").ok],
+    ["Honest anchor mistake is not treated as farming (Q07)",!g("Q07").shared&&g("Q07").xp>0],
+    ["Copied review caught at submission (Q11)",!g("Q11").ok],
+    ["Retrying the quiz does not unlock submission (Q12)",!g("Q12").ok],
+    ["Bot is held (Q06)",!g("Q06").rev],
+    ["Good review quoting no numbers is still approved (Q13)",g("Q13").ok],
+    ["No farmer gets paid",s.farmers===0]
+  ];
+  document.getElementById("checkout").innerHTML=t.map(x=>`<li><span class="mark ${x[1]?"ok":"no"}">${x[1]?"✓":"×"}</span><span class="t">${x[0]}</span><b class="mono">${x[1]?"pass":"fail"}</b></li>`).join("")+
+    `<li><span class="mark ${t.every(x=>x[1])?"ok":"warn"}">i</span><span class="t">${t.filter(x=>x[1]).length} of ${t.length} passing</span></li>`;
+}
+
+function render(){const s=evaluate();renderToggles();renderKpis(s);renderPeople(s);renderBoard(s);renderResults(s)}
+
+function setTab(id){
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",String(t.dataset.t===id)));
+  document.querySelectorAll("section.panel").forEach(p=>p.classList.toggle("on",p.id===id));
+}
+(function(){
+  const row=document.getElementById("tabrow");
+  row.innerHTML=TABS.map(t=>`<button class="tab" data-t="${t[0]}">${t[1]}</button>`).join("");
+  row.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{setTab(t.dataset.t);window.scrollTo({top:0})});
+  setTab("p-how");
+  document.getElementById("run").onclick=runChecks;
+  document.getElementById("anchorOff").onclick=()=>{R={...ON,anchor:false};render();runChecks()};
+  document.getElementById("verOff").onclick=()=>{R={...ON,ver:false};render();runChecks()};
+  document.getElementById("allOff").onclick=()=>{R={...OFF};render();runChecks()};
+  document.getElementById("reset").onclick=()=>{R={...ON};render();runChecks()};
+  renderFinding();renderBusiness();renderDataset();render();
+})();
+</script>
+
+</body>
+</html>
